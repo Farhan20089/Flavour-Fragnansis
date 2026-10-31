@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String           @id @default(cuid())
+  name          String?
+  email         String           @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          String           @default("Customer") // Super Admin | Admin | Staff | Customer
+  phone         String?
+  address       String?
+  city          String?
+  country       String?
+  postalCode    String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  reviews       Review[]
+  wishlist      WishlistItem[]
+  cartItems     CartItemRecord[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionToken])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Inquiry {
+  id             String   @id
+  submitterUid   String
+  name           String
+  company        String
+  email          String
+  phone          String   @default("")
+  country        String   @default("")
+  productName    String
+  quantity       String
+  application    String
+  message        String   @default("")
+  attachmentUrl  String   @default("")
+  inquiryType    String   @default("Quote")
+  cartItemsJson  String   @default("[]")
+  estimatedTotal String?
+  status         String   @default("New")
+  internalNotes  String   @default("")
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Category {
+  id           String    @id @default(cuid())
+  name         String    @unique
+  slug         String    @unique
+  parentGroup  String    // Flavours | Fragrances
+  description  String    @default("")
+  imageUrl     String    @default("")
+  displayOrder Int       @default(0)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  products     Product[]
+}
+
+model Product {
+  id                   String           @id @default(cuid())
+  name                 String
+  sku                  String           @unique
+  slug                 String           @unique
+  categoryId           String?
+  categoryRef          Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category             String           // Stored category name for indexing and fast lookup
+  subcategory          String           @default("")
+  productType          String           // Flavour | Fragrance | Essential Oil | Botanical Extract
+  parentGroup          String           @default("Fragrances") // Flavours | Fragrances
+  shortDescription     String
+  fullDescription      String
+  applications         String           @default("")
+  ingredientsNotes     String           @default("")
+  casNumber            String?
+  tasteProfile         String?
+  olfactoryProfile     String?
+  solubility           String?
+  heatStability        String?
+  minimumOrderQuantity String?
+  price                Float            @default(45.0)
+  salePrice            Float?
+  stockQuantity        Int              @default(100)
+  lowStockThreshold    Int              @default(15)
+  imageUrl             String
+  galleryUrls          String           @default("")
+  technicalDocUrl      String?
+  featured             Boolean          @default(false)
+  status               String           @default("Active") // Active | Draft | Archived
+  views                Int              @default(0)
+  rating               Float            @default(5.0)
+  reviewCount          Int              @default(0)
+  variationsJson       String           @default("[]")
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  orderItems           OrderItem[]
+  reviews              Review[]
+  wishlist             WishlistItem[]
+  cartItems            CartItemRecord[]
+  inventoryLogs        InventoryLog[]
+
+  @@index([category])
+  @@index([parentGroup])
+  @@index([status])
+  @@index([featured])
+}
+
+model Order {
+  id              String         @id @default(cuid())
+  orderNumber     String         @unique
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName    String
+  customerEmail   String
+  customerPhone   String         @default("")
+  shippingAddress String
+  shippingCity    String
+  shippingState   String         @default("")
+  shippingZip     String
+  shippingCountry String         @default("Switzerland")
+  subtotal        Float
+  discountAmount  Float          @default(0.0)
+  shippingFee     Float          @default(0.0)
+  taxAmount       Float          @default(0.0)
+  totalAmount     Float
+  couponCode      String?
+  paymentMethod   String         @default("COD") // COD | Card | Bank Transfer
+  paymentStatus   String         @default("Pending") // Pending | Paid | Failed
+  orderStatus     String         @default("Pending") // Pending | Processing | Shipped | Delivered | Cancelled
+  trackingNumber  String?
+  shippingCarrier String?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  items           OrderItem[]
+  payment         PaymentRecord?
+
+  @@index([customerEmail])
+  @@index([orderStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId         String?
+  product           Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName       String
+  sku               String
+  price             Float
+  quantity          Int
+  subtotal          Float
+  imageUrl          String   @default("")
+  selectedVariation String?
+}
+
+model PaymentRecord {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod String
+  amount        Float
+  currency      String   @default("USD")
+  status        String   @default("Pending") // Pending | Successful | Failed
+  transactionId String?
+  metadataJson  String   @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model InventoryLog {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changeAmount  Int
+  previousStock Int
+  newStock      Int
+  reason        String   // Order | Restock | Adjustment | Return
+  referenceId   String?  // e.g. orderId
+  performedBy   String?  // user email or "System"
+  createdAt     DateTime @default(now())
+
+  @@index([productId])
+}
+
+model Coupon {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  discountType   String    // percentage | fixed
+  discountValue  Float
+  minOrderAmount Float     @default(0.0)
+  maxDiscount    Float?
+  usageLimit     Int?
+  timesUsed      Int       @default(0)
+  active         Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName     String
+  rating           Int      @default(5)
+  title            String   @default("")
+  comment          String
+  verifiedPurchase Boolean  @default(true)
+  approved         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model CartItemRecord {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity          Int      @default(1)
+  selectedVariation String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, productId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminEmail  String
+  action      String
+  resource    String
+  resourceId  String?
+  detailsJson String   @default("{}")
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SiteBanner {
+  id           String   @id @default(cuid())
+  title        String
+  subtitle     String   @default("")
+  ctaText      String   @default("Discover Collection")
+  ctaLink      String   @default("/shop")
+  imageUrl     String   @default("")
+  active       Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+}

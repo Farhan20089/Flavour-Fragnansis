@@ -1,0 +1,6 @@
+{
+  "name": "SK Group of Company Aromatics — B2B Flavours & Fragrances",
+  "description": "Global B2B manufacturer of natural culinary flavours, fine fragrances, botanical extracts, and custom olfactory formulations with integrated R&D and enterprise CMS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

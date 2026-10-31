@@ -1,0 +1,460 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Primitive Helper Functions
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'bf25nwcs0357@uetpeshawar.edu.pk';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isVerifiedUser() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprints (Strict Keys, Types, and Volumetric Bounds)
+
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+        'name', 'sku', 'slug', 'category', 'subcategory', 'productType',
+        'shortDescription', 'fullDescription', 'applications', 'ingredientsNotes',
+        'imageUrl', 'featured', 'status', 'views', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'name', 'sku', 'slug', 'category', 'subcategory', 'productType',
+        'shortDescription', 'fullDescription', 'applications', 'ingredientsNotes',
+        'imageUrl', 'galleryUrls', 'technicalDocUrl', 'featured', 'status',
+        'views', 'createdAt', 'updatedAt'
+      ]) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 160 &&
+      data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 64 &&
+      data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 160 && data.slug.matches('^[a-z0-9\\-]+$') &&
+      data.category is string && data.category.size() >= 1 && data.category.size() <= 100 &&
+      data.subcategory is string && data.subcategory.size() <= 100 &&
+      data.productType is string && data.productType in ['Flavour', 'Fragrance', 'Essential Oil', 'Botanical Extract'] &&
+      data.shortDescription is string && data.shortDescription.size() <= 500 &&
+      data.fullDescription is string && data.fullDescription.size() <= 5000 &&
+      data.applications is string && data.applications.size() <= 1000 &&
+      data.ingredientsNotes is string && data.ingredientsNotes.size() <= 1000 &&
+      data.imageUrl is string && data.imageUrl.size() <= 1000 &&
+      (!('galleryUrls' in data) || (data.galleryUrls is string && data.galleryUrls.size() <= 2000)) &&
+      (!('technicalDocUrl' in data) || (data.technicalDocUrl is string && data.technicalDocUrl.size() <= 1000)) &&
+      data.featured is bool &&
+      data.status is string && data.status in ['Active', 'Draft', 'Archived'] &&
+      data.views is number && data.views >= 0 &&
+      data.createdAt is string && data.createdAt.size() <= 64 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll([
+        'name', 'slug', 'parentGroup', 'description', 'imageUrl', 'displayOrder', 'active', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'name', 'slug', 'parentGroup', 'description', 'imageUrl', 'displayOrder', 'active', 'createdAt'
+      ]) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 120 && data.slug.matches('^[a-z0-9\\-]+$') &&
+      data.parentGroup is string && data.parentGroup in ['Flavours', 'Fragrances'] &&
+      data.description is string && data.description.size() <= 1000 &&
+      data.imageUrl is string && data.imageUrl.size() <= 1000 &&
+      data.displayOrder is number && data.displayOrder >= 0 &&
+      data.active is bool &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidIndustry(data) {
+      return data.keys().hasAll([
+        'name', 'slug', 'description', 'applications', 'imageUrl', 'featuredProducts', 'ctaText', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'name', 'slug', 'description', 'applications', 'imageUrl', 'featuredProducts', 'ctaText', 'createdAt'
+      ]) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 120 && data.slug.matches('^[a-z0-9\\-]+$') &&
+      data.description is string && data.description.size() <= 2000 &&
+      data.applications is string && data.applications.size() <= 1000 &&
+      data.imageUrl is string && data.imageUrl.size() <= 1000 &&
+      data.featuredProducts is string && data.featuredProducts.size() <= 1000 &&
+      data.ctaText is string && data.ctaText.size() <= 120 &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidInquiry(data) {
+      return data.keys().hasAll([
+        'submitterUid', 'name', 'company', 'email', 'phone', 'country',
+        'productName', 'quantity', 'application', 'message', 'status', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'submitterUid', 'name', 'company', 'email', 'phone', 'country',
+        'productName', 'quantity', 'application', 'message', 'attachmentUrl',
+        'status', 'internalNotes', 'createdAt'
+      ]) &&
+      data.submitterUid is string && data.submitterUid.size() >= 1 && data.submitterUid.size() <= 128 &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.company is string && data.company.size() >= 1 && data.company.size() <= 160 &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+      data.phone is string && data.phone.size() <= 64 &&
+      data.country is string && data.country.size() <= 100 &&
+      data.productName is string && data.productName.size() <= 160 &&
+      data.quantity is string && data.quantity.size() <= 100 &&
+      data.application is string && data.application.size() <= 300 &&
+      data.message is string && data.message.size() <= 3000 &&
+      (!('attachmentUrl' in data) || (data.attachmentUrl is string && data.attachmentUrl.size() <= 1000)) &&
+      data.status is string && data.status in ['New', 'Contacted', 'In Progress', 'Completed'] &&
+      (!('internalNotes' in data) || (data.internalNotes is string && data.internalNotes.size() <= 2000)) &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidSampleRequest(data) {
+      return data.keys().hasAll([
+        'submitterUid', 'name', 'company', 'email', 'phone', 'country',
+        'productName', 'quantity', 'application', 'shippingAddress', 'message', 'status', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'submitterUid', 'name', 'company', 'email', 'phone', 'country',
+        'productName', 'quantity', 'application', 'shippingAddress', 'message', 'status', 'createdAt'
+      ]) &&
+      data.submitterUid is string && data.submitterUid.size() >= 1 && data.submitterUid.size() <= 128 &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.company is string && data.company.size() >= 1 && data.company.size() <= 160 &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+      data.phone is string && data.phone.size() <= 64 &&
+      data.country is string && data.country.size() <= 100 &&
+      data.productName is string && data.productName.size() <= 160 &&
+      data.quantity is string && data.quantity.size() <= 100 &&
+      data.application is string && data.application.size() <= 300 &&
+      data.shippingAddress is string && data.shippingAddress.size() >= 1 && data.shippingAddress.size() <= 600 &&
+      data.message is string && data.message.size() <= 2000 &&
+      data.status is string && data.status in ['New', 'Approved', 'Shipped', 'Completed'] &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll([
+        'submitterUid', 'name', 'company', 'email', 'phone', 'country', 'subject', 'message', 'status', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'submitterUid', 'name', 'company', 'email', 'phone', 'country', 'subject', 'message', 'status', 'createdAt'
+      ]) &&
+      data.submitterUid is string && data.submitterUid.size() >= 1 && data.submitterUid.size() <= 128 &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.company is string && data.company.size() <= 160 &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+      data.phone is string && data.phone.size() <= 64 &&
+      data.country is string && data.country.size() <= 100 &&
+      data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 200 &&
+      data.message is string && data.message.size() >= 1 && data.message.size() <= 3000 &&
+      data.status is string && data.status in ['New', 'Read', 'Archived'] &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidBlogPost(data) {
+      return data.keys().hasAll([
+        'title', 'slug', 'category', 'tags', 'excerpt', 'content',
+        'featuredImage', 'seoTitle', 'seoDescription', 'published', 'authorName', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'title', 'slug', 'category', 'tags', 'excerpt', 'content',
+        'featuredImage', 'seoTitle', 'seoDescription', 'published', 'authorName', 'createdAt'
+      ]) &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+      data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 200 && data.slug.matches('^[a-z0-9\\-]+$') &&
+      data.category is string && data.category.size() <= 100 &&
+      data.tags is string && data.tags.size() <= 300 &&
+      data.excerpt is string && data.excerpt.size() <= 600 &&
+      data.content is string && data.content.size() <= 15000 &&
+      data.featuredImage is string && data.featuredImage.size() <= 1000 &&
+      data.seoTitle is string && data.seoTitle.size() <= 160 &&
+      data.seoDescription is string && data.seoDescription.size() <= 300 &&
+      data.published is bool &&
+      data.authorName is string && data.authorName.size() <= 120 &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidMedia(data) {
+      return data.keys().hasAll([
+        'fileName', 'fileType', 'category', 'url', 'sizeKb', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'fileName', 'fileType', 'category', 'url', 'sizeKb', 'createdAt'
+      ]) &&
+      data.fileName is string && data.fileName.size() >= 1 && data.fileName.size() <= 200 &&
+      data.fileType is string && data.fileType in ['image', 'pdf', 'document'] &&
+      data.category is string && data.category.size() <= 100 &&
+      data.url is string && data.url.size() <= 500000 &&
+      data.sizeKb is number && data.sizeKb >= 0 &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidCertificate(data) {
+      return data.keys().hasAll([
+        'name', 'certificateNumber', 'issuingBody', 'issueDate', 'expiryDate', 'documentUrl', 'status', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'name', 'certificateNumber', 'issuingBody', 'issueDate', 'expiryDate', 'documentUrl', 'status', 'createdAt'
+      ]) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 160 &&
+      data.certificateNumber is string && data.certificateNumber.size() >= 1 && data.certificateNumber.size() <= 100 &&
+      data.issuingBody is string && data.issuingBody.size() <= 160 &&
+      data.issueDate is string && data.issueDate.size() <= 64 &&
+      data.expiryDate is string && data.expiryDate.size() <= 64 &&
+      data.documentUrl is string && data.documentUrl.size() <= 1000 &&
+      data.status is string && data.status in ['Active', 'Expiring Soon', 'Archived'] &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidPage(data) {
+      return data.keys().hasAll([
+        'slug', 'title', 'heroHeading', 'heroSubheading', 'heroCtaPrimary', 'heroCtaSecondary',
+        'sectionOneTitle', 'sectionOneBody', 'sectionTwoTitle', 'sectionTwoBody',
+        'sectionThreeTitle', 'sectionThreeBody', 'visible', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'slug', 'title', 'heroHeading', 'heroSubheading', 'heroCtaPrimary', 'heroCtaSecondary',
+        'sectionOneTitle', 'sectionOneBody', 'sectionTwoTitle', 'sectionTwoBody',
+        'sectionThreeTitle', 'sectionThreeBody', 'visible', 'updatedAt'
+      ]) &&
+      data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 64 &&
+      data.title is string && data.title.size() <= 160 &&
+      data.heroHeading is string && data.heroHeading.size() <= 240 &&
+      data.heroSubheading is string && data.heroSubheading.size() <= 600 &&
+      data.heroCtaPrimary is string && data.heroCtaPrimary.size() <= 80 &&
+      data.heroCtaSecondary is string && data.heroCtaSecondary.size() <= 80 &&
+      data.sectionOneTitle is string && data.sectionOneTitle.size() <= 200 &&
+      data.sectionOneBody is string && data.sectionOneBody.size() <= 4000 &&
+      data.sectionTwoTitle is string && data.sectionTwoTitle.size() <= 200 &&
+      data.sectionTwoBody is string && data.sectionTwoBody.size() <= 4000 &&
+      data.sectionThreeTitle is string && data.sectionThreeTitle.size() <= 200 &&
+      data.sectionThreeBody is string && data.sectionThreeBody.size() <= 4000 &&
+      data.visible is bool &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    function isValidSiteSetting(data) {
+      return data.keys().hasAll([
+        'companyName', 'logoText', 'email', 'phone', 'whatsapp', 'address',
+        'linkedinUrl', 'googleMapsUrl', 'smtpHost', 'smtpPort',
+        'seoDefaultTitle', 'seoDefaultDescription', 'analyticsId', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'companyName', 'logoText', 'email', 'phone', 'whatsapp', 'address',
+        'linkedinUrl', 'googleMapsUrl', 'smtpHost', 'smtpPort',
+        'seoDefaultTitle', 'seoDefaultDescription', 'analyticsId', 'updatedAt'
+      ]) &&
+      data.companyName is string && data.companyName.size() >= 1 && data.companyName.size() <= 160 &&
+      data.logoText is string && data.logoText.size() <= 100 &&
+      data.email is string && data.email.size() <= 160 &&
+      data.phone is string && data.phone.size() <= 64 &&
+      data.whatsapp is string && data.whatsapp.size() <= 64 &&
+      data.address is string && data.address.size() <= 400 &&
+      data.linkedinUrl is string && data.linkedinUrl.size() <= 300 &&
+      data.googleMapsUrl is string && data.googleMapsUrl.size() <= 500 &&
+      data.smtpHost is string && data.smtpHost.size() <= 160 &&
+      data.smtpPort is string && data.smtpPort.size() <= 16 &&
+      data.seoDefaultTitle is string && data.seoDefaultTitle.size() <= 160 &&
+      data.seoDefaultDescription is string && data.seoDefaultDescription.size() <= 300 &&
+      data.analyticsId is string && data.analyticsId.size() <= 64 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'name', 'role', 'createdAt']) &&
+      data.keys().hasOnly(['uid', 'email', 'name', 'role', 'createdAt']) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.role is string && data.role in ['Super Admin', 'Admin', 'Editor'] &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // 4. Collection Match Blocks
+
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (resource == null || existing().status == 'Active' || isAdmin());
+      allow list: if existing().status == 'Active' || isAdmin();
+      allow create: if isVerifiedUser() && isValidId(productId) && isValidProduct(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(productId) && isValidProduct(incoming()) && (
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['views', 'updatedAt']) && incoming().views == existing().views + 1)
+        )
+      );
+      allow delete: if isVerifiedUser() && isValidId(productId) && isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && (resource == null || existing().active == true || isAdmin());
+      allow list: if existing().active == true || isAdmin();
+      allow create: if isVerifiedUser() && isValidId(categoryId) && isValidCategory(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(categoryId) && isValidCategory(incoming()) && (
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayOrder', 'active']) && isAdmin()
+        )
+      );
+      allow delete: if isVerifiedUser() && isValidId(categoryId) && isAdmin();
+    }
+
+    match /industries/{industryId} {
+      allow get: if isValidId(industryId) && (resource == null || existing().name is string);
+      allow list: if existing().name is string;
+      allow create: if isVerifiedUser() && isValidId(industryId) && isValidIndustry(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(industryId) && isValidIndustry(incoming()) && (
+        incoming().createdAt == existing().createdAt && isAdmin()
+      );
+      allow delete: if isVerifiedUser() && isValidId(industryId) && isAdmin();
+    }
+
+    match /inquiries/{inquiryId} {
+      allow get: if isVerifiedUser() && isValidId(inquiryId) && (
+        existing().submitterUid == request.auth.uid || isAdmin()
+      );
+      allow list: if isVerifiedUser() && (
+        existing().submitterUid == request.auth.uid || isAdmin()
+      );
+      allow create: if isVerifiedUser() && isValidId(inquiryId) && isValidInquiry(incoming()) &&
+        incoming().submitterUid == request.auth.uid &&
+        incoming().status == 'New';
+      allow update: if isVerifiedUser() && isValidId(inquiryId) && isValidInquiry(incoming()) && (
+        incoming().createdAt == existing().createdAt &&
+        incoming().submitterUid == existing().submitterUid &&
+        (existing().status != 'Completed' || isAdmin()) && (
+          isAdmin() ||
+          (existing().submitterUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'quantity']))
+        )
+      );
+      allow delete: if isVerifiedUser() && isValidId(inquiryId) && isAdmin();
+    }
+
+    match /sampleRequests/{sampleId} {
+      allow get: if isVerifiedUser() && isValidId(sampleId) && (
+        existing().submitterUid == request.auth.uid || isAdmin()
+      );
+      allow list: if isVerifiedUser() && (
+        existing().submitterUid == request.auth.uid || isAdmin()
+      );
+      allow create: if isVerifiedUser() && isValidId(sampleId) && isValidSampleRequest(incoming()) &&
+        incoming().submitterUid == request.auth.uid &&
+        incoming().status == 'New';
+      allow update: if isVerifiedUser() && isValidId(sampleId) && isValidSampleRequest(incoming()) && (
+        incoming().createdAt == existing().createdAt &&
+        incoming().submitterUid == existing().submitterUid &&
+        (existing().status != 'Completed' || isAdmin()) && (
+          isAdmin() ||
+          (existing().submitterUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['shippingAddress', 'message']))
+        )
+      );
+      allow delete: if isVerifiedUser() && isValidId(sampleId) && isAdmin();
+    }
+
+    match /contactMessages/{messageId} {
+      allow get: if isVerifiedUser() && isValidId(messageId) && (
+        existing().submitterUid == request.auth.uid || isAdmin()
+      );
+      allow list: if isVerifiedUser() && (
+        existing().submitterUid == request.auth.uid || isAdmin()
+      );
+      allow create: if isVerifiedUser() && isValidId(messageId) && isValidContactMessage(incoming()) &&
+        incoming().submitterUid == request.auth.uid &&
+        incoming().status == 'New';
+      allow update: if isVerifiedUser() && isValidId(messageId) && isValidContactMessage(incoming()) && (
+        incoming().createdAt == existing().createdAt &&
+        incoming().submitterUid == existing().submitterUid &&
+        (existing().status != 'Archived' || isAdmin()) && (
+          isAdmin() ||
+          (existing().submitterUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['message']))
+        )
+      );
+      allow delete: if isVerifiedUser() && isValidId(messageId) && isAdmin();
+    }
+
+    match /blogPosts/{postId} {
+      allow get: if isValidId(postId) && (resource == null || existing().published == true || isAdmin());
+      allow list: if existing().published == true || isAdmin();
+      allow create: if isVerifiedUser() && isValidId(postId) && isValidBlogPost(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(postId) && isValidBlogPost(incoming()) && (
+        incoming().createdAt == existing().createdAt && isAdmin()
+      );
+      allow delete: if isVerifiedUser() && isValidId(postId) && isAdmin();
+    }
+
+    match /media/{mediaId} {
+      allow get: if isValidId(mediaId) && (resource == null || existing().fileName is string);
+      allow list: if existing().fileName is string;
+      allow create: if isVerifiedUser() && isValidId(mediaId) && isValidMedia(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(mediaId) && isValidMedia(incoming()) && (
+        incoming().createdAt == existing().createdAt && isAdmin()
+      );
+      allow delete: if isVerifiedUser() && isValidId(mediaId) && isAdmin();
+    }
+
+    match /certificates/{certId} {
+      allow get: if isValidId(certId) && (resource == null || existing().status == 'Active' || isAdmin());
+      allow list: if existing().status == 'Active' || isAdmin();
+      allow create: if isVerifiedUser() && isValidId(certId) && isValidCertificate(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(certId) && isValidCertificate(incoming()) && (
+        incoming().createdAt == existing().createdAt && isAdmin()
+      );
+      allow delete: if isVerifiedUser() && isValidId(certId) && isAdmin();
+    }
+
+    match /pages/{pageSlug} {
+      allow get: if isValidId(pageSlug) && (resource == null || existing().visible == true || isAdmin());
+      allow list: if existing().visible == true || isAdmin();
+      allow create: if isVerifiedUser() && isValidId(pageSlug) && isValidPage(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(pageSlug) && isValidPage(incoming()) && isAdmin();
+      allow delete: if isVerifiedUser() && isValidId(pageSlug) && isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId) && (resource == null || existing().companyName is string);
+      allow list: if existing().companyName is string;
+      allow create: if isVerifiedUser() && isValidId(settingId) && isValidSiteSetting(incoming()) && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(settingId) && isValidSiteSetting(incoming()) && isAdmin();
+      allow delete: if isVerifiedUser() && isValidId(settingId) && isAdmin();
+    }
+
+    match /admins/{adminUid} {
+      allow get: if isVerifiedUser() && isValidId(adminUid) && (
+        request.auth.uid == adminUid || isAdmin()
+      );
+      allow list: if isVerifiedUser() && existing().uid is string && isAdmin();
+      allow create: if isVerifiedUser() && isValidId(adminUid) && isValidAdminUser(incoming()) &&
+        incoming().uid == adminUid && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(adminUid) && isValidAdminUser(incoming()) && (
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        isAdmin()
+      );
+      allow delete: if isVerifiedUser() && isValidId(adminUid) && isAdmin();
+    }
+  }
+}

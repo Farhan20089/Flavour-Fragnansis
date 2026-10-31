@@ -1,0 +1,280 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "B2B flavour or fragrance product formulation",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 160 },
+        "sku": { "type": "string", "maxLength": 64 },
+        "slug": { "type": "string", "maxLength": 160, "pattern": "^[a-z0-9\\-]+$" },
+        "category": { "type": "string", "maxLength": 100 },
+        "subcategory": { "type": "string", "maxLength": 100 },
+        "productType": { "type": "string", "enum": ["Flavour", "Fragrance", "Essential Oil", "Botanical Extract"] },
+        "shortDescription": { "type": "string", "maxLength": 500 },
+        "fullDescription": { "type": "string", "maxLength": 5000 },
+        "applications": { "type": "string", "maxLength": 1000 },
+        "ingredientsNotes": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "galleryUrls": { "type": "string", "maxLength": 2000 },
+        "technicalDocUrl": { "type": "string", "maxLength": 1000 },
+        "featured": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["Active", "Draft", "Archived"] },
+        "views": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "sku", "slug", "category", "subcategory", "productType", "shortDescription", "fullDescription", "applications", "ingredientsNotes", "imageUrl", "featured", "status", "views", "createdAt", "updatedAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Flavour or fragrance product category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 120 },
+        "slug": { "type": "string", "maxLength": 120, "pattern": "^[a-z0-9\\-]+$" },
+        "parentGroup": { "type": "string", "enum": ["Flavours", "Fragrances"] },
+        "description": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "displayOrder": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "parentGroup", "description", "imageUrl", "displayOrder", "active", "createdAt"]
+    },
+    "Industry": {
+      "title": "Industry",
+      "description": "B2B industry sector served by formulations",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 120 },
+        "slug": { "type": "string", "maxLength": 120, "pattern": "^[a-z0-9\\-]+$" },
+        "description": { "type": "string", "maxLength": 2000 },
+        "applications": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "featuredProducts": { "type": "string", "maxLength": 1000 },
+        "ctaText": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "description", "applications", "imageUrl", "featuredProducts", "ctaText", "createdAt"]
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "B2B customer quote request",
+      "type": "object",
+      "properties": {
+        "submitterUid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "company": { "type": "string", "maxLength": 160 },
+        "email": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 64 },
+        "country": { "type": "string", "maxLength": 100 },
+        "productName": { "type": "string", "maxLength": 160 },
+        "quantity": { "type": "string", "maxLength": 100 },
+        "application": { "type": "string", "maxLength": 300 },
+        "message": { "type": "string", "maxLength": 3000 },
+        "attachmentUrl": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["New", "Contacted", "In Progress", "Completed"] },
+        "internalNotes": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["submitterUid", "name", "company", "email", "phone", "country", "productName", "quantity", "application", "message", "status", "createdAt"]
+    },
+    "SampleRequest": {
+      "title": "SampleRequest",
+      "description": "B2B laboratory sample dispatch request",
+      "type": "object",
+      "properties": {
+        "submitterUid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "company": { "type": "string", "maxLength": 160 },
+        "email": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 64 },
+        "country": { "type": "string", "maxLength": 100 },
+        "productName": { "type": "string", "maxLength": 160 },
+        "quantity": { "type": "string", "maxLength": 100 },
+        "application": { "type": "string", "maxLength": 300 },
+        "shippingAddress": { "type": "string", "maxLength": 600 },
+        "message": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["New", "Approved", "Shipped", "Completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["submitterUid", "name", "company", "email", "phone", "country", "productName", "quantity", "application", "shippingAddress", "message", "status", "createdAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Corporate contact inquiry submission",
+      "type": "object",
+      "properties": {
+        "submitterUid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "company": { "type": "string", "maxLength": 160 },
+        "email": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 64 },
+        "country": { "type": "string", "maxLength": 100 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 3000 },
+        "status": { "type": "string", "enum": ["New", "Read", "Archived"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["submitterUid", "name", "company", "email", "phone", "country", "subject", "message", "status", "createdAt"]
+    },
+    "BlogPost": {
+      "title": "BlogPost",
+      "description": "Corporate journal, research insights, and news post",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "slug": { "type": "string", "maxLength": 200, "pattern": "^[a-z0-9\\-]+$" },
+        "category": { "type": "string", "maxLength": 100 },
+        "tags": { "type": "string", "maxLength": 300 },
+        "excerpt": { "type": "string", "maxLength": 600 },
+        "content": { "type": "string", "maxLength": 15000 },
+        "featuredImage": { "type": "string", "maxLength": 1000 },
+        "seoTitle": { "type": "string", "maxLength": 160 },
+        "seoDescription": { "type": "string", "maxLength": 300 },
+        "published": { "type": "boolean" },
+        "authorName": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "category", "tags", "excerpt", "content", "featuredImage", "seoTitle", "seoDescription", "published", "authorName", "createdAt"]
+    },
+    "Media": {
+      "title": "Media",
+      "description": "Uploaded image, technical datasheet, or catalogue file",
+      "type": "object",
+      "properties": {
+        "fileName": { "type": "string", "maxLength": 200 },
+        "fileType": { "type": "string", "enum": ["image", "pdf", "document"] },
+        "category": { "type": "string", "maxLength": 100 },
+        "url": { "type": "string", "maxLength": 500000 },
+        "sizeKb": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fileName", "fileType", "category", "url", "sizeKb", "createdAt"]
+    },
+    "Certificate": {
+      "title": "Certificate",
+      "description": "ISO, Kosher, Halal, IFRA, or regulatory quality certificate",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 160 },
+        "certificateNumber": { "type": "string", "maxLength": 100 },
+        "issuingBody": { "type": "string", "maxLength": 160 },
+        "issueDate": { "type": "string", "maxLength": 64 },
+        "expiryDate": { "type": "string", "maxLength": 64 },
+        "documentUrl": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["Active", "Expiring Soon", "Archived"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "certificateNumber", "issuingBody", "issueDate", "expiryDate", "documentUrl", "status", "createdAt"]
+    },
+    "Page": {
+      "title": "Page",
+      "description": "CMS editable corporate website page",
+      "type": "object",
+      "properties": {
+        "slug": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 160 },
+        "heroHeading": { "type": "string", "maxLength": 240 },
+        "heroSubheading": { "type": "string", "maxLength": 600 },
+        "heroCtaPrimary": { "type": "string", "maxLength": 80 },
+        "heroCtaSecondary": { "type": "string", "maxLength": 80 },
+        "sectionOneTitle": { "type": "string", "maxLength": 200 },
+        "sectionOneBody": { "type": "string", "maxLength": 4000 },
+        "sectionTwoTitle": { "type": "string", "maxLength": 200 },
+        "sectionTwoBody": { "type": "string", "maxLength": 4000 },
+        "sectionThreeTitle": { "type": "string", "maxLength": 200 },
+        "sectionThreeBody": { "type": "string", "maxLength": 4000 },
+        "visible": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["slug", "title", "heroHeading", "heroSubheading", "heroCtaPrimary", "heroCtaSecondary", "sectionOneTitle", "sectionOneBody", "sectionTwoTitle", "sectionTwoBody", "sectionThreeTitle", "sectionThreeBody", "visible", "updatedAt"]
+    },
+    "SiteSetting": {
+      "title": "SiteSetting",
+      "description": "Global site configuration, contact details, and SEO defaults",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string", "maxLength": 160 },
+        "logoText": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 64 },
+        "whatsapp": { "type": "string", "maxLength": 64 },
+        "address": { "type": "string", "maxLength": 400 },
+        "linkedinUrl": { "type": "string", "maxLength": 300 },
+        "googleMapsUrl": { "type": "string", "maxLength": 500 },
+        "smtpHost": { "type": "string", "maxLength": 160 },
+        "smtpPort": { "type": "string", "maxLength": 16 },
+        "seoDefaultTitle": { "type": "string", "maxLength": 160 },
+        "seoDefaultDescription": { "type": "string", "maxLength": 300 },
+        "analyticsId": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["companyName", "logoText", "email", "phone", "whatsapp", "address", "linkedinUrl", "googleMapsUrl", "smtpHost", "smtpPort", "seoDefaultTitle", "seoDefaultDescription", "analyticsId", "updatedAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Role-based administrative account",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 160 },
+        "name": { "type": "string", "maxLength": 120 },
+        "role": { "type": "string", "enum": ["Super Admin", "Admin", "Editor"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "name", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catalogue of flavour and fragrance formulations"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Product categories under Flavours and Fragrances"
+    },
+    "/industries/{industryId}": {
+      "schema": "Industry",
+      "description": "Industries served with tailored formulations"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "B2B customer quote requests containing PII"
+    },
+    "/sampleRequests/{sampleId}": {
+      "schema": "SampleRequest",
+      "description": "B2B laboratory sample requests containing PII"
+    },
+    "/contactMessages/{messageId}": {
+      "schema": "ContactMessage",
+      "description": "General contact submissions containing PII"
+    },
+    "/blogPosts/{postId}": {
+      "schema": "BlogPost",
+      "description": "Published and draft articles for the corporate blog"
+    },
+    "/media/{mediaId}": {
+      "schema": "Media",
+      "description": "Uploaded images, technical documents, and catalogues"
+    },
+    "/certificates/{certId}": {
+      "schema": "Certificate",
+      "description": "Quality and regulatory compliance certificates"
+    },
+    "/pages/{pageSlug}": {
+      "schema": "Page",
+      "description": "CMS editable content for corporate pages"
+    },
+    "/settings/{settingId}": {
+      "schema": "SiteSetting",
+      "description": "Global site configuration and SEO metadata"
+    },
+    "/admins/{adminUid}": {
+      "schema": "AdminUser",
+      "description": "Authorized RBAC administrators"
+    }
+  }
+}
